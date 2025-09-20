@@ -1,0 +1,232 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Juego interactivo - Sistema Financiero Mexicano</title>
+<style>
+  body{font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#f4f7fb; color:#123; padding:20px; overflow-x:hidden}
+  .card{max-width:900px;margin:12px auto;padding:22px;background:white;border-radius:12px;box-shadow:0 6px 20px rgba(15,23,42,0.08)}
+  h1{margin:0 0 8px;font-size:22px}
+  p.lead{margin:0 0 16px;color:#334155}
+  .question{font-weight:600;margin:18px 0}
+  .choices{display:grid;gap:10px}
+  button.choice{padding:12px 14px;border-radius:10px;border:1px solid #e6eef8;background:#fff;cursor:pointer;text-align:left;font-size:15px;transition:all .2s}
+  button.choice:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(2,6,23,0.06)}
+  .correct{background:#e6ffef;border-color:#8ce6b7}
+  .wrong{background:#fff0f0;border-color:#ffb3b3}
+  .meta{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:#475569}
+  .progress{height:10px;background:#eef2ff;border-radius:8px;overflow:hidden;width:60%}
+  .bar{height:100%;background:#6366f1;width:0%}
+  .score{font-weight:700}
+  .footer{display:flex;gap:8px;margin-top:14px}
+  .btn{padding:10px 12px;border-radius:10px;border:0;cursor:pointer;background:#6366f1;color:white;transition:.2s}
+  .btn:hover{opacity:.85}
+  .btn.ghost{background:#fff;border:1px solid #e6eef8;color:#0f172a}
+  .small{font-size:13px;color:#6b7280}
+  .example{background:#f8fafc;padding:8px;border-radius:8px;margin-top:8px;color:#0f172a}
+  .review{margin-top:18px}
+  footer{font-size:13px;color:#64748b;text-align:center;margin-top:14px}
+  @media (max-width:600px){.card{padding:16px}}
+
+  /* Result effects */
+  .result-msg{font-size:20px;margin-top:15px;padding:15px;border-radius:12px;animation:fadeIn 1.2s ease forwards;text-align:center}
+  .low{background:#ffe4e6;color:#9f1239;box-shadow:0 0 18px rgba(244,63,94,0.3)}
+  .medium{background:#fef9c3;color:#854d0e;box-shadow:0 0 18px rgba(251,191,36,0.3)}
+  .high{background:#ecfdf5;color:#065f46;box-shadow:0 0 18px rgba(16,185,129,0.3)}
+  @keyframes fadeIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+
+  /* Floating hearts */
+  .heart{position:fixed;bottom:-20px;font-size:22px;color:#ec4899;animation:float 5s linear infinite;z-index:9999;opacity:.8}
+  @keyframes float{0%{transform:translateY(0) scale(1)}100%{transform:translateY(-120vh) scale(1.6);opacity:0}}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Juego interactivo: Sistema Financiero Mexicano</h1>
+  <p class="lead">Responde las preguntas de opción múltiple. Al final verás tu resultado con una sorpresa especial ❤️</p>
+
+  <div id="app">
+    <div id="quiz-area"></div>
+    <div class="meta">
+      <div class="small" id="qcount">Pregunta 0 / 0</div>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+      <div class="score" id="score">Puntaje: 0</div>
+    </div>
+    <div class="footer">
+      <button class="btn ghost" id="prevBtn" disabled>Anterior</button>
+      <button class="btn" id="nextBtn" style="margin-left:auto">Siguiente</button>
+      <button class="btn ghost" id="restartBtn" style="display:none">Reiniciar</button>
+    </div>
+
+    <div id="review" class="review" style="display:none"></div>
+  </div>
+
+  <footer>Basado en la Guía de Estudios del Sistema Financiero Mexicano</footer>
+</div>
+
+<script>
+// Questions (simplified explanations improved)
+const questions = [
+  {q:"¿Qué es el Sistema Financiero Mexicano?", 
+   choices:["Conjunto de empresas que venden productos financieros","Conjunto de instituciones que captan y canalizan recursos bajo la ley","Sólo los bancos del país","Un organismo gubernamental único"],
+   correct:"Conjunto de instituciones que captan y canalizan recursos bajo la ley",
+   explain:"Es un sistema de instituciones públicas y privadas que hacen que el dinero fluya en la economía. Ejemplo: tu depósito en el banco se presta a alguien más para comprar una casa."},
+
+  {q:"¿Cuál es la máxima autoridad del sistema financiero en México?", 
+   choices:["Banxico","CNBV","SHCP","CONDUSEF"],
+   correct:"SHCP",
+   explain:"La Secretaría de Hacienda y Crédito Público diseña la política fiscal y administra los ingresos del país."},
+
+  {q:"¿Qué función principal tiene Banxico?", 
+   choices:["Regular aseguradoras","Proveer moneda nacional y mantener la estabilidad del peso","Defender a los usuarios financieros","Garantizar depósitos hasta 400 mil UDIs"],
+   correct:"Proveer moneda nacional y mantener la estabilidad del peso",
+   explain:"Banxico emite el peso mexicano y controla la inflación. Ejemplo: ajusta tasas de interés cuando suben los precios."},
+
+  {q:"¿Qué regula la CNBV?", 
+   choices:["Aseguradoras y fianzas","Afores","Bancos, casas de bolsa y entidades financieras","El Buró de Crédito"],
+   correct:"Bancos, casas de bolsa y entidades financieras",
+   explain:"Supervisa bancos y entidades para que operen de forma segura. Ejemplo: revisa la solvencia de un banco antes de abrir más sucursales."},
+
+  {q:"¿Qué función tiene la CONDUSEF?", 
+   choices:["Administrar las Afores","Proteger a los usuarios de servicios financieros","Emitir moneda","Garantizar depósitos"],
+   correct:"Proteger a los usuarios de servicios financieros",
+   explain:"Defiende a los usuarios de bancos y aseguradoras. Ejemplo: reclamas si te cobran una comisión indebida."},
+
+  {q:"¿Qué garantiza el IPAB?", 
+   choices:["La solvencia de las aseguradoras","Los depósitos bancarios hasta 400 mil UDIs","La operación de las bolsas","Préstamos a pymes"],
+   correct:"Los depósitos bancarios hasta 400 mil UDIs",
+   explain:"Si un banco quiebra, IPAB protege tu dinero hasta el límite legal."},
+
+  {q:"¿Qué son las Afores?", 
+   choices:["Bancos comerciales","Administradoras de Fondos para el Retiro","Casas de Bolsa","Empresas de Factoraje"],
+   correct:"Administradoras de Fondos para el Retiro",
+   explain:"Administran tu ahorro para el retiro. Ejemplo: cada mes tu patrón deposita en tu Afore."},
+
+  {q:"¿Qué es una Siefore?", 
+   choices:["Una casa de cambio especializada","Sociedad de inversión para fondos de retiro","Un tipo de banco","Un regulador financiero"],
+   correct:"Sociedad de inversión para fondos de retiro",
+   explain:"Es el fondo donde tu Afore invierte tu dinero para hacerlo crecer."},
+
+  {q:"¿Qué hace una Sofom?", 
+   choices:["Ofrece seguros","Otorga créditos (hipotecarios, automotrices, empresariales)","Regula a las sociedades cooperativas","Interviene en el mercado de derivados"],
+   correct:"Otorga créditos (hipotecarios, automotrices, empresariales)",
+   explain:"Una Sofom financia a clientes sin ser un banco tradicional. Ejemplo: crédito para comprar un auto."},
+
+  {q:"¿Qué entiendes por Sector Bursátil?", 
+   choices:["Mercado donde se negocian acciones y bonos","Instituciones que ofrecen créditos rurales","Entidades que venden seguros","Empresas que administran Afores"],
+   correct:"Mercado donde se negocian acciones y bonos",
+   explain:"Es la Bolsa de Valores donde se compran y venden acciones de empresas y bonos de gobierno."}
+];
+
+// Shuffle function
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
+questions.forEach(q=>shuffle(q.choices));
+
+let current=0, score=0, answered=[];
+const total=questions.length;
+const quizArea=document.getElementById('quiz-area');
+const qcount=document.getElementById('qcount');
+const bar=document.getElementById('bar');
+const scoreEl=document.getElementById('score');
+const prevBtn=document.getElementById('prevBtn');
+const nextBtn=document.getElementById('nextBtn');
+const restartBtn=document.getElementById('restartBtn');
+const reviewDiv=document.getElementById('review');
+
+function renderQuestion(i){
+  const item=questions[i];
+  qcount.textContent=`Pregunta ${i+1} / ${total}`;
+  bar.style.width=`${((i)/total)*100}%`;
+  quizArea.innerHTML=`
+    <div>
+      <div class="question">${i+1}. ${item.q}</div>
+      <div class="choices" id="choices"></div>
+      <div class="example small"><strong>Explicación:</strong> ${item.explain}</div>
+    </div>
+  `;
+  const choicesDiv=document.getElementById('choices');
+  item.choices.forEach((ch, idx)=>{
+    const btn=document.createElement('button');
+    btn.className='choice';
+    btn.innerHTML=`<strong>${String.fromCharCode(65+idx)}.</strong> ${ch}`;
+    btn.onclick=()=>selectChoice(i, ch, btn);
+    choicesDiv.appendChild(btn);
+  });
+  prevBtn.disabled=(i===0);
+  nextBtn.textContent=(i===total-1)?'Terminar':'Siguiente';
+}
+
+function selectChoice(qIndex, selectedText, btn){
+  if(answered[qIndex]!==undefined) return;
+  answered[qIndex]=selectedText;
+  const correct=questions[qIndex].correct;
+  if(selectedText===correct){
+    btn.classList.add('correct');
+    score++;
+  } else {
+    btn.classList.add('wrong');
+    Array.from(document.getElementsByClassName('choice')).forEach(b=>{
+      if(b.textContent.includes(correct)) b.classList.add('correct');
+    });
+  }
+  Array.from(document.getElementsByClassName('choice')).forEach(b=>b.disabled=true);
+  scoreEl.textContent='Puntaje: '+score;
+}
+
+function updateBarAndButtons(){
+  bar.style.width=`${((current)/total)*100}%`;
+  prevBtn.disabled=(current===0);
+  nextBtn.textContent=(current===total-1)?'Terminar':'Siguiente';
+}
+
+nextBtn.onclick=()=>{
+  if(current<total-1){
+    current++; renderQuestion(current);
+  } else { showResults(); }
+  updateBarAndButtons();
+};
+
+prevBtn.onclick=()=>{
+  if(current>0){current--; renderQuestion(current); updateBarAndButtons();}
+};
+
+restartBtn.onclick=()=>location.reload();
+
+function showResults(){
+  bar.style.width='100%';
+  quizArea.innerHTML=`<div style="text-align:center"><h2>Resultado final</h2><p class="small">Obtuviste <strong>${score}</strong> de <strong>${total}</strong> puntos.</p></div>`;
+  const pct = (score/total)*100;
+  let msg="",cls="";
+  if(pct<=40){msg="Ánimo mi amor, tú puedes 💖";cls="low";spawnHearts();}
+  else if(pct<=70){msg="Casi lo logras mi solecito 🌞";cls="medium";spawnHearts();}
+  else{msg="Eres la mejor, te amo 💕";cls="high";spawnHearts();}
+  const div=document.createElement('div');
+  div.className='result-msg '+cls;
+  div.innerHTML=msg;
+  quizArea.appendChild(div);
+  restartBtn.style.display='inline-block';
+  nextBtn.style.display='none';
+  prevBtn.style.display='none';
+}
+
+// Floating hearts
+function spawnHearts(){
+  for(let i=0;i<20;i++){
+    const heart=document.createElement('div');
+    heart.className='heart';
+    heart.textContent='💖';
+    heart.style.left=Math.random()*100+'vw';
+    heart.style.animationDuration=3+Math.random()*2+'s';
+    document.body.appendChild(heart);
+    setTimeout(()=>heart.remove(),5000);
+  }
+}
+
+// Init
+renderQuestion(current);
+updateBarAndButtons();
+</script>
+</body>
+</html>
